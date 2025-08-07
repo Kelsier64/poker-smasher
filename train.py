@@ -550,23 +550,57 @@ if __name__ == "__main__":
         os.path.join(save_dir, "self_play_agent_2.pkl")
     ]
     
+    # Check for transformer agents
+    transformer_save_dir = "saved_transformer_agents"
+    transformer_agent_files = [
+        os.path.join(transformer_save_dir, "transformer_agent_0_best.pt"),
+        os.path.join(transformer_save_dir, "transformer_agent_1_best.pt"),
+        os.path.join(transformer_save_dir, "transformer_agent_2_best.pt")
+    ]
+    
     agents_exist = all(os.path.exists(f) for f in saved_agent_files)
+    transformer_agents_exist = all(os.path.exists(f) for f in transformer_agent_files)
+    
+    print("Choose training method:")
+    print("1. Traditional Q-Learning self-play")
+    print("2. Transformer-based self-play (requires PyTorch)")
     
     if agents_exist:
-        print("Found saved agents! Choose an option:")
-        print("1. Load and test existing agents")
-        print("2. Train new agents (will overwrite existing ones)")
-        choice = input("Enter choice (1 or 2): ").strip()
-        
-        if choice == "1":
-            print("Loading and testing existing agents...")
-            loaded_agents = load_and_test_agents(saved_agent_files)
-            
-            print("\nPlaying demonstration game with loaded agents...")
-            play_single_game(loaded_agents[:3], render=True)
-            exit()
+        print("3. Load and test existing Q-Learning agents")
+    if transformer_agents_exist:
+        print("4. Load and test existing Transformer agents")
     
-    print("Training poker agents through self-play...")
+    choice = input("Enter choice: ").strip()
+    
+    if choice == "2":
+        # Try to import transformer training
+        try:
+            from transformer_train import main as transformer_main
+            transformer_main()
+        except ImportError as e:
+            print(f"Error importing transformer modules: {e}")
+            print("Please install PyTorch: pip install torch")
+            print("Falling back to traditional training...")
+            choice = "1"
+    
+    if choice == "4" and transformer_agents_exist:
+        try:
+            from transformer_train import load_and_test_transformer_agents
+            load_and_test_transformer_agents(transformer_agent_files)
+        except ImportError:
+            print("PyTorch not available. Cannot load transformer agents.")
+        exit()
+    
+    if choice == "3" and agents_exist:
+        print("Loading and testing existing Q-Learning agents...")
+        loaded_agents = load_and_test_agents(saved_agent_files)
+        
+        print("\nPlaying demonstration game with loaded agents...")
+        play_single_game(loaded_agents[:3], render=True)
+        exit()
+    
+    # Default to traditional Q-Learning training
+    print("Training poker agents through traditional Q-Learning self-play...")
     
     # Train agents through self-play
     trained_agents, training_scores = train_self_play(num_episodes=20000, render_every=2000)
